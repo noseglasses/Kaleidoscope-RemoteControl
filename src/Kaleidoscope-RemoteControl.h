@@ -18,6 +18,9 @@
 
 #pragma once
 
+#include "kaleidoscope_internal/type_traits/has_member.h"
+#include "kaleidoscope_internal/type_traits/type_traits"
+
 namespace kaleidoscope {
 namespace plugin {
 namespace remote_control {
@@ -35,8 +38,13 @@ _T passOn(_T t) { return t; }
 
 struct __Undefined__ {};
 
-template<typename _Dummy, int _entry_id, int _entry_type>
-struct IOHelper {};
+namespace signature_check {
+   template<typename _T, int _entry_id, int _entry_type>
+   struct IOHelper {};
+
+   template<int _entry_id>
+   struct EntryTypeTraits {};
+} // namespace signature_check
 
 #define __EVAL(S) S
 
@@ -66,14 +74,37 @@ struct IOHelper {};
       static constexpr bool value = test<int>(int{});                   __NL__ \
    };
 
-#define CHECK_CALL_TRAITS(TRAITS_NAME, OBJ, FUNC, ARG)                         \
-   template<typename _Dummy>                                            __NL__ \
+#define MEMBER_CALL_TRAITS(TRAITS_NAME, FUNC)                                   \
+   template<typename _ObjType, typename _ArgType>                       __NL__ \
    struct TRAITS_NAME                                                   __NL__ \
    {                                                                    __NL__ \
       template<typename _T>                                             __NL__ \
       static constexpr                                                  __NL__ \
       decltype(                                                         __NL__ \
-         OBJ FUNC(passOn<_T>(ARG)), bool{}                              __NL__ \
+         std::declval(_ObjType).FUNC(std::declval(_ArgType)), bool{}                              __NL__ \
+      )                                                                 __NL__ \
+      test(int /* unused */)                                            __NL__ \
+      {                                                                 __NL__ \
+         return true;                                                   __NL__ \
+      }                                                                 __NL__ \
+                                                                        __NL__ \
+      template<typename _T>                                             __NL__ \
+      static constexpr bool test(...)                                   __NL__ \
+      {                                                                 __NL__ \
+         return false;                                                  __NL__ \
+      }                                                                 __NL__ \
+                                                                        __NL__ \
+      static constexpr bool value = test<int>(int{});                   __NL__ \
+   };
+   
+#define GLOBAL_CALL_TRAITS(TRAITS_NAME, FUNC)                                   \
+   template<typename _ArgType>                       __NL__ \
+   struct TRAITS_NAME                                                   __NL__ \
+   {                                                                    __NL__ \
+      template<typename _T>                                             __NL__ \
+      static constexpr                                                  __NL__ \
+      decltype(                                                         __NL__ \
+         FUNC(std::declval(_ArgType)), bool{}                              __NL__ \
       )                                                                 __NL__ \
       test(int /* unused */)                                            __NL__ \
       {                                                                 __NL__ \
@@ -111,67 +142,104 @@ enum EntryType {
       INSTANCE_EXISTS_TRAITS(CAT2(TargetIsGlobalInstance_,                      \
                                   COUNTER), OBJ)                        __NL__ \
                                                                         __NL__ \
-      CHECK_CALL_TRAITS(CAT2(SetterIsVoid_, COUNTER), OBJ., SETTER, )   __NL__ \
-      constexpr bool setter_is_void                                     __NL__ \
-         = CAT2(SetterIsVoid_, COUNTER)<Dummy>::value;                  __NL__ \
+      MEMBER_CALL_TRAITS(CAT2(InstanceSetterGetterCompatible_,                  \
+                             COUNTER), SETTER)      __NL__ \
                                                                         __NL__ \
-      CHECK_CALL_TRAITS(CAT2(InstanceSetterGetterCompatible_,                  \
-                             COUNTER), OBJ., SETTER, OBJ.GETTER())      __NL__ \
-                                                                        __NL__ \
-      CHECK_CALL_TRAITS(CAT2(GlobalSetterGetterCompatible_,                    \
-                             COUNTER), , SETTER, OBJ.GETTER())          __NL__ \
+      GLOBAL_CALL_TRAITS(CAT2(GlobalSetterGetterCompatible_,                    \
+                             COUNTER), SETTER)          __NL__ \
                                                                         __NL__ \
       DEFINE_HAS_MEMBER_TRAITS(CAT2(SetterIsInstanceMethod_,                   \
-                                    COUNTER),                           __NL__ \
+                                    COUNTER),                                  \
                                SETTER)                                  __NL__ \
                                                                         __NL__ \
       DEFINE_HAS_MEMBER_TRAITS(CAT2(GetterIsInstanceMethod_,                   \
-                                    COUNTER),                           __NL__ \
+                                    COUNTER),                                  \
                                GETTER)                                  __NL__ \
                                                                         __NL__ \
       constexpr int entry_id = COUNTER - first_entry_counter - 1;       __NL__ \
                                                                         __NL__ \
-      template<>                                                        __NL__ \
-      struct EntryType<entry_id> {                                      __NL__ \
-         static constexpr int value =                                   __NL__ \
-            (CAT2(TargetIsGlobalInstance_, COUNTER)<Dummy>::value)      __NL__ \
-            ?  (                                                        __NL__ \
-                  (                                                     __NL__ \
-                     (  CAT3(SetterIsInstanceMethod_, COUNTER, _HasMember_##SETTER)  __NL__ \
-                               <decltype(OBJ)>::value                   __NL__ \
-                     && CAT3(GetterIsInstanceMethod_, COUNTER, _HasMember_##GETTER)  __NL__ \
-                               <decltype(OBJ)>::value                   __NL__ \
-                     ) && CAT2(InstanceSetterGetterCompatible_, COUNTER)<Dummy>::value  __NL__ \
-                  )                                                     __NL__ \
-                  ?  EntryTypeObjSetterGetter                           __NL__ \
-                  :  (                                                  __NL__ \
-                        (  CAT3(SetterIsInstanceMethod_, COUNTER, _HasMember_##SETTER)  __NL__ \
-                               <decltype(OBJ)>::value                   __NL__ \
-                        || CAT3(GetterIsInstanceMethod_, COUNTER, _HasMember_##GETTER)  __NL__ \
-                               <decltype(OBJ)>::value                   __NL__ \
-                        )                                               __NL__ \
-                     )                                                  __NL__ \
-                        ? EntryTypeError                                __NL__ \
-                        : EntryTypeGlobalIntrinsic                      __NL__ \
-                     )                                                  __NL__ \
-               )                                                        __NL__ \
-            :  (                                                        __NL__ \
-                  (CAT2(GlobalSetterGetterCompatible_, COUNTER)<Dummy>::value)  __NL__ \
-                  ?  EntryTypeGlobalFunctions                           __NL__ \
-                  :  EntryTypeError                                     __NL__ \
-               )                                                        __NL__ \
-            ;                                                           __NL__ \
+      template<bool /* true */>                                         __NL__ \
+      struct BranchAccessorsCompatible {                                __NL__ \
+         static constexpr int value = EntryTypeObjSetterGetter;         __NL__ \
       };                                                                __NL__ \
                                                                         __NL__ \
-      template<typename _Dummy>                                         __NL__ \
-      struct IOHelper<_Dummy, entry_id, EntryTypeObjSetterGetter>       __NL__ \
+      template<>                                                        __NL__ \
+      struct BranchAccessorsCompatible<false> {                         __NL__ \
+         static constexpr int value = EntryTypeError;                   __NL__ \
+      };                                                                __NL__ \
+                                                                        __NL__ \
+      template<bool /* true */>                                         __NL__ \
+      struct BranchAccessorsAvailable {                                 __NL__ \
+         static constexpr int value = BranchAccessorsCompatible<        __NL__ \
+            CAT2(InstanceSetterGetterCompatible_, COUNTER)<decltype(OBJ), TYPE>::value __NL__ \
+         >::value;                                                      __NL__ \
+      };                                                                __NL__ \
+                                                                        __NL__ \
+      template<>                                                        __NL__ \
+      struct BranchAccessorsAvailable<false> {                          __NL__ \
+         static constexpr int value = EntryTypeGlobalIntrinsic;         __NL__ \
+      };                                                                __NL__ \
+                                                                        __NL__ \
+      template<typename _T, bool /* true */>                                         __NL__ \
+      struct BranchClassInstance {                                      __NL__ \
+         static_assert(sizeof(_T) == 0, "NO!"); \
+                                                                        __NL__ \
+         static constexpr int value = BranchAccessorsAvailable<         __NL__ \
+               CAT3(SetterIsInstanceMethod_, COUNTER, _HasMember_##SETTER) __NL__ \
+                               <decltype(OBJ)>::value                   __NL__ \
+            && CAT3(GetterIsInstanceMethod_, COUNTER, _HasMember_##GETTER) __NL__ \
+                               <decltype(OBJ)>::value                   __NL__ \
+         >::value;                                                      __NL__ \
+      };                                                                __NL__ \
+                                                                        __NL__ \
+      template<typename _T>                                                        __NL__ \
+      struct BranchClassInstance<_T, false> {                               __NL__ \
+         static constexpr int value = EntryTypeGlobalIntrinsic;         __NL__ \
+      };                                                                __NL__ \
+                                                                        __NL__ \
+      template<bool /* true */>                                         __NL__ \
+      struct BranchGlobalInstance {                                     __NL__ \
+         static_assert(!std::is_class<decltype(OBJ)>::value, "blu"); \
+         static constexpr int value = BranchClassInstance<              __NL__ \
+            int, std::is_class<decltype(OBJ)>::value                         __NL__ \
+         >::value;                                                      __NL__ \
+      };                                                                __NL__ \
+                                                                        __NL__ \
+      template<bool /* true */>                                         __NL__ \
+      struct BranchGlobalGettersAndSettersCompatible {                  __NL__ \
+         static constexpr int value = EntryTypeGlobalFunctions;         __NL__ \
+      };                                                                __NL__ \
+                                                                        __NL__ \
+      template<>                                                        __NL__ \
+      struct BranchGlobalGettersAndSettersCompatible<false> {           __NL__ \
+         static constexpr int value = EntryTypeError;                   __NL__ \
+      };                                                                __NL__ \
+                                                                        __NL__ \
+      template<>                                                        __NL__ \
+      struct BranchGlobalInstance<false> {                              __NL__ \
+         static constexpr int value = BranchGlobalGettersAndSettersCompatible< __NL__ \
+            CAT2(GlobalSetterGetterCompatible_, COUNTER)<TYPE>::value  __NL__ \
+         >::value;                                                      __NL__ \
+      };                                                                __NL__ \
+                                                                        __NL__ \
+      template<>                                                        __NL__ \
+      struct EntryTypeTraits<entry_id> {                                __NL__ \
+         static constexpr int value = BranchGlobalInstance<             __NL__ \
+            CAT2(TargetIsGlobalInstance_, COUNTER)<Dummy>::value        __NL__ \
+         >::value;                                                      __NL__ \
+      };                                                                __NL__ \
+                                                                        __NL__ \
+      template<typename _T>                                             __NL__ \
+      struct IOHelper<_T, entry_id, EntryTypeObjSetterGetter>           __NL__ \
       {                                                                 __NL__ \
+         template<typename _Dummy>                                      __NL__ \
          static void read() {                                           __NL__ \
             TYPE tmp{};                                                 __NL__ \
             Focus.read(tmp);                                            __NL__ \
             OBJ.SETTER(tmp);                                            __NL__ \
          }                                                              __NL__ \
                                                                         __NL__ \
+         template<typename _Dummy>                                      __NL__ \
          static void send() {                                           __NL__ \
             Focus.send(OBJ.GETTER());                                   __NL__ \
          }                                                              __NL__ \
@@ -180,23 +248,27 @@ enum EntryType {
       template<>                                                        __NL__ \
       struct IOHelper<void, entry_id, EntryTypeObjSetterGetter>         __NL__ \
       {                                                                 __NL__ \
+         template<typename _Dummy>                                      __NL__ \
          static void read() {                                           __NL__ \
             OBJ.SETTER();                                               __NL__ \
          }                                                              __NL__ \
+         template<typename _Dummy>                                      __NL__ \
          static void send() {                                           __NL__ \
             OBJ.GETTER();                                               __NL__ \
          }                                                              __NL__ \
       };                                                                __NL__ \
                                                                         __NL__ \
-      template<typename _Dummy>                                         __NL__ \
-      struct IOHelper<_Dummy, entry_id, EntryTypeGlobalFunctions>       __NL__ \
+      template<typename _T>                                             __NL__ \
+      struct IOHelper<_T, entry_id, EntryTypeGlobalFunctions>           __NL__ \
       {                                                                 __NL__ \
+         template<typename _Dummy>                                      __NL__ \
          static void read() {                                           __NL__ \
             TYPE tmp{};                                                 __NL__ \
             Focus.read(tmp);                                            __NL__ \
             SETTER(tmp);                                                __NL__ \
          }                                                              __NL__ \
                                                                         __NL__ \
+         template<typename _Dummy>                                      __NL__ \
          static void send() {                                           __NL__ \
             Focus.send(GETTER());                                       __NL__ \
          }                                                              __NL__ \
@@ -205,37 +277,43 @@ enum EntryType {
       template<>                                                        __NL__ \
       struct IOHelper<void, entry_id, EntryTypeGlobalFunctions>         __NL__ \
       {                                                                 __NL__ \
+         template<typename _Dummy>                                      __NL__ \
          static void read() {                                           __NL__ \
             SETTER();                                                   __NL__ \
          }                                                              __NL__ \
+         template<typename _Dummy>                                      __NL__ \
          static void send() {                                           __NL__ \
             GETTER();                                                   __NL__ \
          }                                                              __NL__ \
       };                                                                __NL__ \
                                                                         __NL__ \
-      template<typename _Dummy>                                         __NL__ \
-      struct IOHelper<_Dummy, entry_id, EntryTypeGlobalIntrinsic>       __NL__ \
+      template<typename _T>                                             __NL__ \
+      struct IOHelper<_T, entry_id, EntryTypeGlobalIntrinsic>           __NL__ \
       {                                                                 __NL__ \
+         template<typename _Dummy>                                      __NL__ \
          static void read() {                                           __NL__ \
             Focus.read(OBJ);                                            __NL__ \
          }                                                              __NL__ \
                                                                         __NL__ \
+         template<typename _Dummy>                                      __NL__ \
          static void get() {                                            __NL__ \
             Focus.send(OBJ);                                            __NL__ \
          }                                                              __NL__ \
       };                                                                __NL__ \
                                                                         __NL__ \
-      template<typename _Dummy>                                         __NL__ \
-      struct IOHelper<_Dummy, entry_id, EntryTypeError>                 __NL__ \
+      template<typename _T>                                             __NL__ \
+      struct IOHelper<_T, entry_id, EntryTypeError>                     __NL__ \
       {                                                                 __NL__ \
-         static_assert(false, "Error in definition of remote "          __NL__ \
+         static_assert(false, "\nError in definition of remote "        __NL__ \
                                 "control entry\n"                       __NL__ \
                               "   OBJ: " #OBJ "\n"                      __NL__ \
                               "   GETTER: " #GETTER "\n"                __NL__ \
                               "   SETTER: " #SETTER "\n"                __NL__ \
                               "   TYPE: " #TYPE "\n"                    __NL__ \
                               "Unable to setup I/O");                   __NL__ \
+         template<typename _Dummy>                                      __NL__ \
          static void read() {}                                          __NL__ \
+         template<typename _Dummy>                                      __NL__ \
          static void get() {}                                           __NL__ \
       };                                                                __NL__ \
    } /* namespace signature_check */
@@ -247,8 +325,8 @@ enum EntryType {
    case COUNTER - first_entry_counter_read - 1:                         __NL__ \
       IOHelper<TYPE,                                                    __NL__ \
                COUNTER - first_entry_counter_read - 1,                  __NL__ \
-               signature_check::EntryType<entry_id>::value              __NL__ \
-      >::read();                                                        __NL__ \
+               signature_check::EntryTypeTraits<entry_id>::value        __NL__ \
+      >::read<Dummy>();                                                 __NL__ \
       break;
       
 #define SWITCH_SEND(OBJ, GETTER, SETTER, TYPE) \
@@ -258,8 +336,8 @@ enum EntryType {
    case COUNTER - first_entry_counter_read - 1:                         __NL__ \
       IOHelper<TYPE,                                                    __NL__ \
                COUNTER - first_entry_counter_read - 1,                  __NL__ \
-               signature_check::EntryType<entry_id>::value              __NL__ \
-      >::send();                                                        __NL__ \
+               signature_check::EntryTypeTraits<entry_id>::value        __NL__ \
+      >::send<Dummy>();                                                 __NL__ \
       break;
 
 #define REMOTE_CONTROL_INIT(REMOTE_CONTROL_DEFINITION)                         \
