@@ -243,10 +243,6 @@ namespace remote_control {
    };
 } // namespace remote_control
 
-// This class is implemented as a persistent LED mode
-// as there is no benefit of transforming it into a dynamic
-// LED mode in terms of PROGMEM or RAM.
-//
 class RemoteControl : public Plugin {
  public:
 

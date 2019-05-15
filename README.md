@@ -22,7 +22,7 @@ Register the remote control plugin
 
 ```cpp
 KALEIDOSCOPE_INIT_PLUGINS(
-   ...
+   ...other plugins...
    RemoteControl
 )
 ```
@@ -49,6 +49,8 @@ The corresponding remote control setup would read as follows.
 REMOTE_CONTROL_INIT(REMOTE_CONTROL) 
 ```
 
+**Important:** The continuation markers `\` at the end of each line of the definition of function macro `REMOTE_CONTROL` are required for the pre-processor to read the macro definition as a single line.
+
 Now you can use the `focus-test` program to test your setup. The following 
 are the commands to be entered in a console window. The `focus-test` command
 resides in the `bin` folder of the `Kaleidoscope` repository.
@@ -73,9 +75,8 @@ focus-test remote_control.trigger 3
 
 ## General Usage
 
-Like in the above example the specification of features to be controlled works
-also in general via the two macros `REMOTE_CONTROL_INIT` and `REMOTE_CONTROL`. While the former
-is pre-defined by the plugin, the latter is responsible for the actual configuration.
+In the above example but also in general, features to be controlled are registered with the remote control system via the two macros `REMOTE_CONTROL_INIT` and `REMOTE_CONTROL`. While the former
+comes pre-defined by the plugin, the latter is responsible for the actual configuration.
 
 The general syntax for its definition is as follows
 ```cpp
@@ -86,7 +87,7 @@ The general syntax for its definition is as follows
 ```
 
 Here `<COMMAND>` must be replaced with one of the remote control commands explained below. 
-`<ID>` is the request ID. Please make sure to let request IDs start from zero and do not
+`<ID>` must be replaced with the request ID. Please make sure to let request IDs start from zero and do not
 use the same request ID twice for the same command type. Every command has
 its own set of arguments so you have to replace `<ARGS...>` with what is required by the different commands.
 
@@ -273,3 +274,11 @@ TRIGGER: The trigger function to be called.
 ```
 focus-test remote_control.trigger <ID>
 ```
+
+## Application Ideas and Examples
+
+**You have more ideas about what to remote control? Just let me know and I can add your ideas to this list to inspire other people.**
+
+### Signal EMail Arrival
+
+Say, you want the whole keyboard to switch to a specific LED mode that announces arrival of new EMail. Given that you have a scripting interface in your EMail client, you could let it emit a `focus-test` call that triggers the LED mode switching on the keyboard. After you read your EMail, you could let the mail client signal via another `focus-test` call that all email was read (if it is capable of doing this). Alternatively, you could switch manually to the original LED mode on the keyboard.
