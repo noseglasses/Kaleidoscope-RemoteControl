@@ -288,6 +288,100 @@ namespace remote_control {
          printMappedTo();
          printType<void>();
       }
+   }; 
+
+   // Static member functions   
+   
+   template<typename _R, typename _Arg>
+   struct MemFuncIO<_R(*)(_Arg)> {
+      
+      template<typename _T>
+      static void apply(_T &, _R(*memFunc)(_Arg)) {
+         ::Focus.send((*memFunc)(read<_Arg>()));
+      }
+      
+      static void help() {
+         printType<_Arg>();
+         printMappedTo();
+         printType<_R>();
+      }
+   };
+   
+   template<typename _R, typename _Arg, typename..._Args>
+   struct MemFuncIO<_R(*)(_Arg, _Args...)> {
+      
+      template<typename _T>
+      static void apply(_T &, _R(*memFunc)(_Arg, _Args...)) {
+         ::Focus.send((*memFunc)(read<_Arg>(), read<_Args>()...));
+      }
+      
+      static void help() {
+         printType<_Arg>();
+         dummy(printSubsequentType<_Args>()...);
+         printMappedTo();
+         printType<_R>();
+      }
+   };
+   
+   template<typename _Arg>
+   struct MemFuncIO<void(*)(_Arg)> {
+
+      template<typename _T>
+      static void apply(_T &, void(*memFunc)(_Arg)) {
+         (*memFunc)(read<_Arg>());
+      }
+      
+      static void help() {
+         printType<_Arg>();
+         printMappedTo();
+         printType<void>();
+      }
+   };
+   
+   template<typename _Arg, typename..._Args>
+   struct MemFuncIO<void(*)(_Arg, _Args...)> {
+
+      template<typename _T>
+      static void apply(_T &, void(*memFunc)(_Arg, _Args...)) {
+         (*memFunc)(read<_Arg>(), read<_Args>()...);
+      }
+      
+      static void help() {
+         printType<_Arg>();
+         dummy(printSubsequentType<_Args>()...);
+         printMappedTo();
+         printType<void>();
+      }
+   };
+   
+   template<typename _R>
+   struct MemFuncIO<_R(*)()> {
+
+      template<typename _T>
+      static void apply(_T &, _R(*memFunc)()) {
+         ::Focus.send((*memFunc)());
+      }
+      
+      static void help() {
+         printType<void>();
+         printMappedTo();
+         printType<_R>();
+      }
+   };
+   
+   template<>
+   struct MemFuncIO<void(*)()> {
+
+      template<typename _T>
+      static void apply(_T &, void(*memFunc)()) {
+         (*memFunc)();
+      }
+      
+      static void help() {
+         printType<void>();
+         printMappedTo();
+         printType<void>();
+      }
    };    
    
    template<typename _T, typename _F>
