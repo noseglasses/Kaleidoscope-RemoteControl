@@ -188,6 +188,8 @@ focus-test remote_control.set <ID> [values...]
 
 **You have more ideas about what to remote control? Just let me know and I can add your ideas to this list to inspire other people.**
 
-### Signal EMail Arrival
+### Signal Incoming Mail
 
 Say, you want the whole keyboard to switch to a specific LED mode that announces arrival of new EMail. Given that you have a scripting interface in your EMail client, you could let it emit a `focus-test` call that triggers the LED mode switching on the keyboard. After you read your EMail, you could let the mail client signal via another `focus-test` call that all email was read (if it is capable of doing this). Alternatively, you could switch manually to the original LED mode on the keyboard.
+
+Checkout [FiltaQuilla](https://addons.thunderbird.net/en-US/thunderbird/addon/filtaquilla/) for one way to do handle incoming mail signalling with Mozilla Thunderbird.
