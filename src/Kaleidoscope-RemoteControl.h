@@ -222,7 +222,8 @@ namespace remote_control {
    struct MemFuncIO<_R(_T::*)(_Arg, _Args...)> {
       
       static void apply(_T &t, _R(_T::*memFunc)(_Arg, _Args...)) {
-         ::Focus.send((t.*memFunc)(read<_Arg>(), read<_Args>()...));
+         auto tmp = read<_Arg>(); // force this to be evaluated first
+         ::Focus.send((t.*memFunc)(tmp, read<_Args>()...));
       }
       
       static void help() {
@@ -251,7 +252,8 @@ namespace remote_control {
    struct MemFuncIO<void(_T::*)(_Arg, _Args...)> {
 
       static void apply(_T &t, void(_T::*memFunc)(_Arg, _Args...)) {
-         (t.*memFunc)(read<_Arg>(), read<_Args>()...);
+         auto tmp = read<_Arg>(); // force this to be evaluated first
+         (t.*memFunc)(tmp, read<_Args>()...);
       }
       
       static void help() {
@@ -312,7 +314,8 @@ namespace remote_control {
       
       template<typename _T>
       static void apply(_T &, _R(*memFunc)(_Arg, _Args...)) {
-         ::Focus.send((*memFunc)(read<_Arg>(), read<_Args>()...));
+         auto tmp = read<_Arg>(); // force this to be evaluated first
+         ::Focus.send((*memFunc)(tmp, read<_Args>()...));
       }
       
       static void help() {
@@ -343,7 +346,8 @@ namespace remote_control {
 
       template<typename _T>
       static void apply(_T &, void(*memFunc)(_Arg, _Args...)) {
-         (*memFunc)(read<_Arg>(), read<_Args>()...);
+         auto tmp = read<_Arg>(); // force this to be evaluated first
+         (*memFunc)(tmp, read<_Args>()...);
       }
       
       static void help() {
@@ -414,7 +418,8 @@ namespace remote_control {
    struct GlobFuncIO<_R(*)(_Arg, _Args...)> {
       
       static void apply(_R(*memFunc)(_Arg, _Args...)) {
-         ::Focus.send((*memFunc)(read<_Arg>(), read<_Args>()...));
+         auto tmp = read<_Arg>(); // force this to be evaluated first
+         ::Focus.send((*memFunc)(tmp, read<_Args>()...));
       }
       
       static void help() {
@@ -443,7 +448,8 @@ namespace remote_control {
    struct GlobFuncIO<void(*)(_Arg, _Args...)> {
 
       static void apply(void(*memFunc)(_Arg, _Args...)) {
-         (*memFunc)(read<_Arg>(), read<_Args>()...);
+         auto tmp = read<_Arg>(); // force this to be evaluated first
+         (*memFunc)(tmp, read<_Args>()...);
       }
       
       static void help() {
