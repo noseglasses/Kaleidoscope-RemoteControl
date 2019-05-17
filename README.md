@@ -15,6 +15,10 @@ Next, to enable remote controlling, include the `Kaleidoscope-RemoteControl.h`
 header at the beginning of your sketch
 
 ```cpp
+// Important: Kaleidoscope-RemoteControl requires FocusSerial
+//
+#include "Kaleidoscope-FocusSerial.h"
+
 #include "Kaleidoscope-RemoteControl.h"
 ```
 
@@ -23,6 +27,7 @@ Register the remote control plugin
 ```cpp
 KALEIDOSCOPE_INIT_PLUGINS(
    ...other plugins...
+   Focus,
    RemoteControl
 )
 ```
